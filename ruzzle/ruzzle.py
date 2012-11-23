@@ -22,9 +22,9 @@ class Grid(object):
                 letter = int(letter)
 
                 if letter == 1:
-                    self.graph.node[letter_position - 1]['letter_modifier'] = 2
+                    self.graph.node[letter_position - 1]['letter_score'] *= 2
                 elif letter == 2:
-                    self.graph.node[letter_position - 1]['letter_modifier'] = 3
+                    self.graph.node[letter_position - 1]['letter_score'] *= 3
                 elif letter == 3:
                     self.graph.node[letter_position - 1]['word_modifier'] = 2
                 elif letter == 4:
@@ -32,8 +32,8 @@ class Grid(object):
 
                 continue
 
-            self.graph.add_node(letter_position, letter=letter, letter_modifier=1,
-                    word_modifier=1)
+            self.graph.add_node(letter_position, letter=letter, word_modifier=1,
+                                letter_score=self.get_letter_score(letter))
 
             if len(self.table) < line + 1:
                 self.table.append([])
@@ -48,6 +48,17 @@ class Grid(object):
         for i in range(0, 4):
             for j in range(0, 4):
                 self.add_edges(j, i)
+
+    def get_letter_score(self, letter):
+        scores = {
+                'd': 2, 'l': 2, 'p': 3, 'h': 4, 'q': 8, 'b': 3, 'v': 5, 'm': 2,
+                'g': 2,
+        }
+
+        if letter in scores:
+            return scores[letter]
+
+        return 1
 
     def add_edges(self, col, row):
         for i in range(-1, 2):
@@ -72,16 +83,6 @@ class Solver(object):
     def set_grid(self, grid):
         self.grid = grid
 
-    def get_letter_score(self, letter):
-        scores = {
-                'd': 2, 'l': 2, 'p': 3, 'h': 4, 'q': 8, 'b': 3, 'v': 5,
-        }
-
-        if letter in scores:
-            return scores[letter]
-
-        return 1
-
     def get_length_score(self, length):
         if length >= 5:
             return 5 + (5 * (length - 5))
@@ -97,7 +98,7 @@ class Solver(object):
             word_modifier = 1
             for node_id in path:
                 node = self.grid.graph.node[node_id]
-                score += self.get_letter_score(node['letter']) * node['letter_modifier']
+                score += node['letter_score']
                 buffer += node['letter']
 
                 if node['word_modifier'] > word_modifier:

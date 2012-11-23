@@ -58,22 +58,26 @@ solvers_uris = ns.list('solver')
 solutions_queue = Queue()
 paths_queue = Queue()
 processes = []
+nodes_queue = []
+
 for solver_uri in solvers_uris.values():
     p = Process(target=solve, args=(solver_uri, grid, paths_queue,
                 solutions_queue))
     processes.append(p)
     p.start()
 
-start_time = time.time()
-print(start_time)
-for source in range(0, grid.graph.number_of_nodes()):
+for node in grid.graph.nodes():
+    priority = grid.graph.node[node]['letter_score'] * grid.graph.node[node]['word_modifier']
+    nodes_queue.append((-1 * priority, node))
+
+nodes_queue = sorted(nodes_queue)
+
+for (priority, source) in nodes_queue:
     for destination in range(grid.graph.number_of_nodes() - 1, -1, -1):
         if source == destination:
             continue
 
         paths_queue.put((source, destination))
-
-print(paths_queue.qsize())
 
 p = Process(target=consume_solution_queue, args=(solutions_queue,))
 p.start()
@@ -81,10 +85,4 @@ p.start()
 for process in processes:
     process.join()
 
-p.terminate()
-
-end_time = time.time()
-print(end_time)
-
-print(end_time - start_time)
-
+#p.terminate()
