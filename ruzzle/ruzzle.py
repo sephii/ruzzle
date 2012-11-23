@@ -16,16 +16,34 @@ class Grid(object):
         self.graph = nx.Graph()
         self.table = []
 
+        letter_position = 0
         for (i, letter) in enumerate(letters):
-            self.graph.add_node(i, letter=letter)
+            if letter.isdigit():
+                letter = int(letter)
+
+                if letter == 1:
+                    self.graph.node[letter_position - 1]['letter_modifier'] = 2
+                elif letter == 2:
+                    self.graph.node[letter_position - 1]['letter_modifier'] = 3
+                elif letter == 3:
+                    self.graph.node[letter_position - 1]['word_modifier'] = 2
+                elif letter == 4:
+                    self.graph.node[letter_position - 1]['word_modifier'] = 3
+
+                continue
+
+            self.graph.add_node(letter_position, letter=letter, letter_modifier=1,
+                    word_modifier=1)
 
             if len(self.table) < line + 1:
                 self.table.append([])
 
             self.table[line].append(letter)
 
-            if (i + 1) % 4 == 0 and i > 0:
+            if (letter_position + 1) % 4 == 0 and letter_position > 0:
                 line += 1
+
+            letter_position += 1
 
         for i in range(0, 4):
             for j in range(0, 4):
@@ -54,15 +72,40 @@ class Solver(object):
     def set_grid(self, grid):
         self.grid = grid
 
+    def get_letter_score(self, letter):
+        scores = {
+                'd': 2, 'l': 2, 'p': 3, 'h': 4, 'q': 8, 'b': 3, 'v': 5,
+        }
+
+        if letter in scores:
+            return scores[letter]
+
+        return 1
+
+    def get_length_score(self, length):
+        if length >= 5:
+            return 5 + (5 * (length - 5))
+
+        return 0
+
     def solve(self, source, destination):
         solutions = set()
 
         for path in nx.all_simple_paths(self.grid.graph, source, destination):
             buffer = ''
-            for node in path:
-                buffer += self.grid.graph.node[node]['letter']
+            score = 0
+            word_modifier = 1
+            for node_id in path:
+                node = self.grid.graph.node[node_id]
+                score += self.get_letter_score(node['letter']) * node['letter_modifier']
+                buffer += node['letter']
+
+                if node['word_modifier'] > word_modifier:
+                    word_modifier = node['word_modifier']
 
             if buffer in self.dictionary.words:
-                solutions.add(buffer)
+                score *= word_modifier
+                score += self.get_length_score(len(buffer))
+                solutions.add((score, buffer))
 
-        return solutions
+        return list(solutions)
