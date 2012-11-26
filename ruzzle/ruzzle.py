@@ -11,6 +11,11 @@ class Dictionary(object):
                 self.words.add(line.lower())
 
 class Grid(object):
+    SCORES = {
+            'd': 2, 'l': 2, 'p': 3, 'h': 4, 'q': 8, 'b': 3, 'v': 5, 'm': 2,
+            'g': 2, 'c': 3, 'f': 4, 'k': 10, 'x': 10, 'y': 10, 'z': 10, 'w': 10
+    }
+
     def __init__(self, letters):
         line = 0
         self.graph = nx.Graph()
@@ -50,13 +55,8 @@ class Grid(object):
                 self.add_edges(j, i)
 
     def get_letter_score(self, letter):
-        scores = {
-                'd': 2, 'l': 2, 'p': 3, 'h': 4, 'q': 8, 'b': 3, 'v': 5, 'm': 2,
-                'g': 2,
-        }
-
-        if letter in scores:
-            return scores[letter]
+        if letter in self.SCORES:
+            return self.SCORES[letter]
 
         return 1
 
@@ -91,6 +91,8 @@ class Solver(object):
 
     def solve(self, source, destination):
         solutions = set()
+
+        print((source, destination))
 
         for path in nx.all_simple_paths(self.grid.graph, source, destination):
             buffer = ''

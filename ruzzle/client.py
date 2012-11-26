@@ -6,6 +6,16 @@ from multiprocessing import Process, Queue
 
 from ruzzle import Grid
 
+class bcolors:
+    RED = '\033[31m'
+    BLUE = '\033[34m'
+    GREEN = '\033[32m'
+    CYAN = '\033[36m'
+    PURPLE = '\033[35m'
+    YELLOW = '\033[33m'
+    WHITE = '\033[37m'
+    ENDC = '\033[0m'
+
 def solve(solver_uri, grid, paths_queue, solutions_queue):
     solver = Pyro4.Proxy(solver_uri)
     solver.set_grid(grid)
@@ -21,31 +31,53 @@ def solve(solver_uri, grid, paths_queue, solutions_queue):
                 solutions_queue.put(solution)
     except Empty:
         print('Paths queue is empty')
+    except KeyboardInterrupt:
+        pass
+
+def print_solution(score, solution):
+    colors = [
+        (0, bcolors.WHITE),
+        (50, bcolors.BLUE),
+        (75, bcolors.GREEN),
+        (100, bcolors.YELLOW),
+        (150, bcolors.PURPLE),
+    ]
+
+    for (s, c) in colors:
+        if score < s:
+            break
+
+        color = c
+
+    print('%s%s: %s%s' % (color, score, solution, bcolors.ENDC))
 
 def consume_solution_queue(q):
     priority_queue = PriorityQueue()
     proposed_solutions = set()
 
-    while True:
-        fetch = True
-        while fetch:
+    try:
+        while True:
+            fetch = True
+            while fetch:
+                try:
+                    item = q.get_nowait()
+
+                    if item[1] not in proposed_solutions:
+                        item = (-1 * item[0], item[1])
+                        priority_queue.put(item)
+                        proposed_solutions.add(item[1])
+                except Empty:
+                    fetch = False
+
             try:
-                item = q.get_nowait()
-
-                if item[1] not in proposed_solutions:
-                    item = (-1 * item[0], item[1])
-                    priority_queue.put(item)
-                    proposed_solutions.add(item[1])
+                solution = priority_queue.get_nowait()
+                print_solution(-1 * solution[0], solution[1])
             except Empty:
-                fetch = False
+                pass
 
-        try:
-            solution = priority_queue.get_nowait()
-            print('%s: %s' % (-1 * solution[0], solution[1]))
-        except Empty:
-            pass
-
-        time.sleep(3)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
 
 tried = set()
 
@@ -67,7 +99,7 @@ for solver_uri in solvers_uris.values():
     p.start()
 
 for node in grid.graph.nodes():
-    priority = grid.graph.node[node]['letter_score'] * grid.graph.node[node]['word_modifier']
+    priority = grid.graph.node[node]['letter_score'] + ((grid.graph.node[node]['word_modifier'] - 1) * 20)
     nodes_queue.append((-1 * priority, node))
 
 nodes_queue = sorted(nodes_queue)
@@ -82,7 +114,8 @@ for (priority, source) in nodes_queue:
 p = Process(target=consume_solution_queue, args=(solutions_queue,))
 p.start()
 
-for process in processes:
-    process.join()
-
-#p.terminate()
+try:
+    for process in processes:
+        process.join()
+except KeyboardInterrupt:
+    pass
