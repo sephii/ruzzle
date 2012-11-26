@@ -36,18 +36,18 @@ def solve(solver_uri, grid, paths_queue, solutions_queue):
 
 def print_solution(score, solution):
     colors = [
+        (150, bcolors.RED),
+        (100, bcolors.PURPLE),
+        (75, bcolors.YELLOW),
+        (50, bcolors.GREEN),
+        (25, bcolors.CYAN),
         (0, bcolors.WHITE),
-        (50, bcolors.BLUE),
-        (75, bcolors.GREEN),
-        (100, bcolors.YELLOW),
-        (150, bcolors.PURPLE),
     ]
 
     for (s, c) in colors:
-        if score < s:
+        if score >= s:
+            color = c
             break
-
-        color = c
 
     print('%s%s: %s%s' % (color, score, solution, bcolors.ENDC))
 
@@ -63,19 +63,19 @@ def consume_solution_queue(q):
                     item = q.get_nowait()
 
                     if item[1] not in proposed_solutions:
-                        item = (-1 * item[0], item[1])
-                        priority_queue.put(item)
+                        priorized_item = (-1 * (item[0] / len(item[1])), item[0], item[1])
+                        priority_queue.put(priorized_item)
                         proposed_solutions.add(item[1])
                 except Empty:
                     fetch = False
 
             try:
                 solution = priority_queue.get_nowait()
-                print_solution(-1 * solution[0], solution[1])
+                print_solution(solution[1], solution[2])
             except Empty:
                 pass
 
-            time.sleep(1)
+            time.sleep(2)
     except KeyboardInterrupt:
         pass
 
