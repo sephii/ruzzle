@@ -103,8 +103,7 @@ class Solver(object):
                 score += node['letter_score']
                 buffer += node['letter']
 
-                if node['word_modifier'] > word_modifier:
-                    word_modifier = node['word_modifier']
+                word_modifier *= node['word_modifier']
 
             if buffer in self.dictionary.words:
                 score *= word_modifier
